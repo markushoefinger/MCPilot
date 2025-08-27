@@ -1,0 +1,82 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# MCP Configuration (local only - nicht für GitHub)
+mcp/
+*.mcp
+mcp-config.json
+claude_desktop_config.json
+.claude.json
+
+# MCPilot logos (local only)
+mcpilot_icon.svg
+mcpilot_logo.svg
+
+# Documentation images are included
+!images/
+!images/*.png
+!images/*.jpg
+!images/*.gif
+
+# User-specific files
+.github-token
+*.backup.json
+*-backup-*.json
+
+# Backup directories
+backups/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Windows shortcuts
+*.lnk
+
+# Special files (Windows)
+nul
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+temp/
+tmp/
+
+# User configuration
+sync-config_*.bat
+START_DESKTOP.bat
+START_LAPTOP.bat
+config.local.json
+settings.local.json
+
+# Test files
+test-*.bat
+cleanup*.bat
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build artifacts
+dist/
+build/

@@ -1,0 +1,34 @@
+{
+  "name": "mcpilot",
+  "version": "3.0.0",
+  "description": "One MCP cockpit across tools and machines - Direct-save configuration management for Claude Desktop and Claude Code with GitHub Gist sync",
+  "main": "server-advanced.js",
+  "scripts": {
+    "start": "node server-advanced.js",
+    "dev": "node server-advanced.js"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "anthropic",
+    "config",
+    "management",
+    "sync",
+    "gist",
+    "direct-save",
+    "backup"
+  ],
+  "author": "MCPilot Contributors",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/markushoefinger/MCPilot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/markushoefinger/MCPilot/issues"
+  },
+  "homepage": "https://github.com/markushoefinger/MCPilot#readme"
+}

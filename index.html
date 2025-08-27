@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>MCPilot - One MCP cockpit across tools and machines</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tab-button.active { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .status-active { background-color: #10b981; animation: pulse 2s infinite; }
+        .status-inactive { background-color: #ef4444; }
+        .status-synced { background-color: #3b82f6; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .server-card.disabled {
+            opacity: 0.6;
+            background-color: #f9fafb;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <div class="gradient-bg text-white p-6 shadow-lg">
+        <div class="container mx-auto">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <!-- MCPilot Logo -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50" class="mr-3">
+                        <g transform="translate(5,5)" fill="#34D399">
+                            <!-- Central node -->
+                            <circle cx="20" cy="20" r="8"/>
+                            <!-- Top node -->
+                            <circle cx="20" cy="5" r="6"/>
+                            <!-- Left node -->
+                            <circle cx="5" cy="30" r="6"/>
+                            <!-- Right node -->
+                            <circle cx="35" cy="30" r="6"/>
+                            <!-- Connections -->
+                            <line x1="20" y1="20" x2="20" y2="5" stroke="#34D399" stroke-width="3"/>
+                            <line x1="20" y1="20" x2="5" y2="30" stroke="#34D399" stroke-width="3"/>
+                            <line x1="20" y1="20" x2="35" y2="30" stroke="#34D399" stroke-width="3"/>
+                        </g>
+                    </svg>
+                    <div>
+                        <h1 class="text-3xl font-bold">MCPilot</h1>
+                        <p class="text-purple-200 text-sm">One MCP cockpit across tools and machines</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Gist Operations -->
+                    <button onclick="loadFromGist()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-semibold">
+                        <i class="fas fa-download mr-2"></i>Load from Gist
+                    </button>
+                    <button onclick="saveToGist()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold">
+                        <i class="fas fa-upload mr-2"></i>Save to Gist
+                    </button>
+                    
+                    <!-- Separator -->
+                    <div class="h-8 w-px bg-purple-300 opacity-50"></div>
+                    
+                    <!-- Claude Save Operations -->
+                    <button onclick="applyToClaudeDesktop()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-semibold">
+                        <i class="fas fa-save mr-2"></i>Claude Desktop
+                    </button>
+                    <button onclick="applyToClaudeCode()" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 font-semibold">
+                        <i class="fas fa-save mr-2"></i>Claude Code
+                    </button>
+                    <button onclick="applyToBoth()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 font-semibold">
+                        <i class="fas fa-save mr-2"></i>Both
+                    </button>
+                    
+                    <!-- Separator -->
+                    <div class="h-8 w-px bg-purple-300 opacity-50"></div>
+                    
+                    <!-- Settings -->
+                    <button onclick="showSettingsModal()" class="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700" title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="container mx-auto px-6 py-6">
+        <div class="bg-white rounded-lg shadow p-4 mb-6">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-6">
+                    <span class="text-sm">
+                        <i class="fas fa-server mr-1"></i>
+                        Total Servers: <strong id="serverCount">0</strong>
+                    </span>
+                    <span class="text-sm text-green-600">
+                        <i class="fas fa-check-circle mr-1"></i>
+                        Active: <strong id="activeCount">0</strong>
+                    </span>
+                    <span class="text-sm text-gray-500">
+                        <i class="fas fa-pause-circle mr-1"></i>
+                        Disabled: <strong id="disabledCount">0</strong>
+                    </span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-600">
+                        <i class="fas fa-clock mr-1"></i>
+                        Last Updated: <span id="lastUpdate">Never</span>
+                    </span>
+                    <span class="text-sm text-gray-600">
+                        <i class="fas fa-laptop mr-1"></i>
+                        Device: <span id="hostname">Unknown</span>
+                    </span>
+                    <span id="configStatus" class="status-indicator status-inactive"></span>
+                </div>
+            </div>
+            <div id="gistInfo" class="mt-2"></div>
+            <div id="versionInfo" class="mt-2"></div>
+        </div>
+
+        <!-- Add Server Button -->
+        <div class="mb-6">
+            <button onclick="showAddServerModal()" class="bg-gradient-to-r from-green-500 to-teal-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-600 hover:to-teal-700 transition-all shadow-lg">
+                <i class="fas fa-plus-circle mr-2"></i>Add New Server
+            </button>
+        </div>
+
+        <!-- Server Grid -->
+        <div id="serversList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Servers will be rendered here -->
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Settings</h3>
+                <button onclick="closeSettingsModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <!-- GitHub Settings -->
+                <div class="border-b pb-4">
+                    <h4 class="font-semibold mb-3 text-gray-700">GitHub Configuration</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">GitHub Token</label>
+                            <input type="password" id="githubToken" placeholder="ghp_..." class="w-full px-3 py-2 border rounded-lg">
+                            <p class="text-xs text-gray-500 mt-1">Your personal access token with gist scope</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Gist ID</label>
+                            <input type="text" id="gistId" placeholder="Enter your Gist ID" class="w-full px-3 py-2 border rounded-lg">
+                            <p class="text-xs text-gray-500 mt-1">The ID of your configuration gist</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Path Settings -->
+                <div class="border-b pb-4">
+                    <h4 class="font-semibold mb-3 text-gray-700">File Paths</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Claude Desktop Config Path</label>
+                            <input type="text" id="claudeDesktopPath" placeholder="Leave empty for auto-detected path" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <p class="text-xs text-gray-500 mt-1">Leave empty for default path (auto-detects based on OS)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Claude Code Config Path</label>
+                            <input type="text" id="claudeCodePath" placeholder="Leave empty for auto-detected path" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <p class="text-xs text-gray-500 mt-1">Leave empty for default path (auto-detects based on OS)</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Advanced Settings -->
+                <div>
+                    <h4 class="font-semibold mb-3 text-gray-700">Advanced</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Max Backups</label>
+                            <input type="number" id="maxBackups" placeholder="10" min="1" max="100" class="w-full px-3 py-2 border rounded-lg">
+                            <p class="text-xs text-gray-500 mt-1">Number of backup files to keep (default: 10)</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-2 pt-4">
+                    <button onclick="saveSettings()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        Save Settings
+                    </button>
+                    <button onclick="closeSettingsModal()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Server Modal -->
+    <div id="serverModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-xl font-bold">Add New Server</h3>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form onsubmit="saveServer(event); return false;">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Server Name *</label>
+                        <input type="text" id="serverName" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Command Type</label>
+                        <select id="commandType" onchange="updateCommandFields()" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="npx">NPX Package</option>
+                            <option value="node">Node Script</option>
+                            <option value="python">Python Script</option>
+                            <option value="docker">Docker Container</option>
+                            <option value="uvx">UVX Package</option>
+                            <option value="custom">Custom Command</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Command *</label>
+                        <input type="text" id="command" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    
+                    <div id="packageField">
+                        <label class="block text-sm font-medium mb-1">Package/Script</label>
+                        <input type="text" id="packageName" class="w-full px-3 py-2 border rounded-lg" placeholder="e.g., @modelcontextprotocol/server-filesystem">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Arguments (one per line)</label>
+                        <textarea id="args" rows="3" class="w-full px-3 py-2 border rounded-lg" placeholder="--arg1=value&#10;--arg2=value"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Environment Variables</label>
+                        <div id="envVars" class="space-y-2"></div>
+                        <button type="button" onclick="addEnvVar()" class="text-blue-600 hover:text-blue-800 text-sm mt-2">
+                            <i class="fas fa-plus mr-1"></i>Add Environment Variable
+                        </button>
+                    </div>
+                    
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="serverEnabled" checked class="mr-2">
+                            <span class="text-sm font-medium">Enable this server</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-2 mt-6">
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        Save Server
+                    </button>
+                    <button type="button" onclick="closeModal()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transform translate-y-full transition-transform duration-300">
+        <span id="toastMessage"></span>
+    </div>
+
+    <script src="app.js?v=2.0.0"></script>
+</body>
+</html>
