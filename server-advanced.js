@@ -39,6 +39,23 @@ function getCursorPath() {
     }
 }
 
+// Helper function to get platform-specific Claude IDE Cursor path
+function getClaudeIdeCursorPath() {
+    const platform = os.platform();
+    const home = os.homedir();
+
+    switch(platform) {
+        case 'win32':
+            return path.join(home, '.cursor', 'mcp.json');
+        case 'darwin': // macOS
+            return path.join(home, '.cursor', 'mcp.json');
+        case 'linux':
+            return path.join(home, '.cursor', 'mcp.json');
+        default:
+            return path.join(home, '.cursor', 'mcp.json');
+    }
+}
+
 // Configuration - can be overridden via environment variables
 const CONFIG = {
     port: process.env.MCP_PORT || 8080,
@@ -47,7 +64,8 @@ const CONFIG = {
     paths: {
         claudeCode: process.env.MCP_CLAUDE_CODE_PATH || path.join(os.homedir(), '.claude.json'),
         claudeDesktop: process.env.MCP_CLAUDE_DESKTOP_PATH || getClaudeDesktopPath(),
-        cursor: process.env.MCP_CURSOR_PATH || getCursorPath()
+        cursor: process.env.MCP_CURSOR_PATH || getCursorPath(),
+        claudeIdeCursor: process.env.MCP_CLAUDE_IDE_CURSOR_PATH || getClaudeIdeCursorPath()
     }
 };
 
@@ -57,6 +75,7 @@ const SERVER_DIR = __dirname;
 let CLAUDE_CODE_PATH = CONFIG.paths.claudeCode;
 let CLAUDE_DESKTOP_PATH = CONFIG.paths.claudeDesktop;
 let CURSOR_PATH = CONFIG.paths.cursor;
+let CLAUDE_IDE_CURSOR_PATH = CONFIG.paths.claudeIdeCursor;
 
 // CORS headers
 const corsHeaders = {
@@ -201,14 +220,38 @@ const server = http.createServer((req, res) => {
                         }
 
                         // Create backup
-                        const backupResult = createBackup(CURSOR_PATH, 'Claude IDE Cursor');
+                        const backupResult = createBackup(CURSOR_PATH, 'Cursor');
 
                         // Save new config
                         fs.writeFileSync(CURSOR_PATH, configJson, 'utf8');
                         results.push({
-                            target: 'Claude IDE Cursor',
+                            target: 'Cursor',
                             status: 'success',
                             path: CURSOR_PATH,
+                            backup: backupResult
+                        });
+                    } catch (err) {
+                        results.push({ target: 'Cursor', status: 'error', error: err.message });
+                    }
+                }
+
+                if (target === 'claudeIdeCursor' || target === 'all') {
+                    try {
+                        // Ensure directory exists
+                        const dir = path.dirname(CLAUDE_IDE_CURSOR_PATH);
+                        if (!fs.existsSync(dir)) {
+                            fs.mkdirSync(dir, { recursive: true });
+                        }
+
+                        // Create backup
+                        const backupResult = createBackup(CLAUDE_IDE_CURSOR_PATH, 'Claude IDE Cursor');
+
+                        // Save new config
+                        fs.writeFileSync(CLAUDE_IDE_CURSOR_PATH, configJson, 'utf8');
+                        results.push({
+                            target: 'Claude IDE Cursor',
+                            status: 'success',
+                            path: CLAUDE_IDE_CURSOR_PATH,
                             backup: backupResult
                         });
                     } catch (err) {
@@ -279,6 +322,11 @@ const server = http.createServer((req, res) => {
                         CONFIG.paths.cursor = newSettings.paths.cursor;
                         // Update the backward compatibility variable
                         CURSOR_PATH = CONFIG.paths.cursor;
+                    }
+                    if (newSettings.paths.claudeIdeCursor) {
+                        CONFIG.paths.claudeIdeCursor = newSettings.paths.claudeIdeCursor;
+                        // Update the backward compatibility variable
+                        CLAUDE_IDE_CURSOR_PATH = CONFIG.paths.claudeIdeCursor;
                     }
                 }
                 
@@ -393,9 +441,10 @@ server.listen(PORT, () => {
     console.log('   • CORS enabled');
     console.log('');
     console.log('📍 Config paths:');
-    console.log(`   Claude Code CLI:    ${CLAUDE_CODE_PATH}`);
-    console.log(`   Claude Desktop:     ${CLAUDE_DESKTOP_PATH}`);
-    console.log(`   Claude IDE Cursor:  ${CURSOR_PATH}`);
+    console.log(`   Claude Code CLI:     ${CLAUDE_CODE_PATH}`);
+    console.log(`   Claude Desktop:      ${CLAUDE_DESKTOP_PATH}`);
+    console.log(`   Cursor:              ${CURSOR_PATH}`);
+    console.log(`   Claude IDE Cursor:   ${CLAUDE_IDE_CURSOR_PATH}`);
     console.log('');
     console.log('Press Ctrl+C to stop\n');
     

@@ -10,7 +10,8 @@ const CONFIG = {
     paths: {
         claudeDesktop: localStorage.getItem('claudeDesktopPath') || '',
         claudeCode: localStorage.getItem('claudeCodePath') || '',
-        cursor: localStorage.getItem('cursorPath') || ''
+        cursor: localStorage.getItem('cursorPath') || '',
+        claudeIdeCursor: localStorage.getItem('claudeIdeCursorPath') || ''
     },
     maxBackups: parseInt(localStorage.getItem('maxBackups')) || 10
 };
@@ -216,6 +217,7 @@ async function showSettingsModal() {
     const desktopPathInput = document.getElementById('claudeDesktopPath');
     const codePathInput = document.getElementById('claudeCodePath');
     const cursorPathInput = document.getElementById('cursorPath');
+    const claudeIdeCursorPathInput = document.getElementById('claudeIdeCursorPath');
     const maxBackupsInput = document.getElementById('maxBackups');
 
     // Load existing values
@@ -224,6 +226,7 @@ async function showSettingsModal() {
     desktopPathInput.value = CONFIG.paths.claudeDesktop;
     codePathInput.value = CONFIG.paths.claudeCode;
     cursorPathInput.value = CONFIG.paths.cursor;
+    claudeIdeCursorPathInput.value = CONFIG.paths.claudeIdeCursor;
     maxBackupsInput.value = CONFIG.maxBackups || 10;
 
     // Try to load current settings from server if available
@@ -242,6 +245,9 @@ async function showSettingsModal() {
             }
             if (!CONFIG.paths.cursor && settings.paths?.cursor) {
                 cursorPathInput.value = settings.paths.cursor;
+            }
+            if (!CONFIG.paths.claudeIdeCursor && settings.paths?.claudeIdeCursor) {
+                claudeIdeCursorPathInput.value = settings.paths.claudeIdeCursor;
             }
             if (!localStorage.getItem('maxBackups') && settings.maxBackups) {
                 maxBackupsInput.value = settings.maxBackups;
@@ -264,6 +270,7 @@ async function saveSettings() {
     const desktopPathInput = document.getElementById('claudeDesktopPath');
     const codePathInput = document.getElementById('claudeCodePath');
     const cursorPathInput = document.getElementById('cursorPath');
+    const claudeIdeCursorPathInput = document.getElementById('claudeIdeCursorPath');
     const maxBackupsInput = document.getElementById('maxBackups');
 
     // Save to localStorage
@@ -272,6 +279,7 @@ async function saveSettings() {
     localStorage.setItem('claudeDesktopPath', desktopPathInput.value.trim());
     localStorage.setItem('claudeCodePath', codePathInput.value.trim());
     localStorage.setItem('cursorPath', cursorPathInput.value.trim());
+    localStorage.setItem('claudeIdeCursorPath', claudeIdeCursorPathInput.value.trim());
     localStorage.setItem('maxBackups', maxBackupsInput.value || '10');
 
     // Update CONFIG
@@ -280,6 +288,7 @@ async function saveSettings() {
     CONFIG.paths.claudeDesktop = desktopPathInput.value.trim();
     CONFIG.paths.claudeCode = codePathInput.value.trim();
     CONFIG.paths.cursor = cursorPathInput.value.trim();
+    CONFIG.paths.claudeIdeCursor = claudeIdeCursorPathInput.value.trim();
     CONFIG.maxBackups = parseInt(maxBackupsInput.value) || 10;
 
     // Update server settings if available
@@ -295,7 +304,8 @@ async function saveSettings() {
                     paths: {
                         claudeDesktop: CONFIG.paths.claudeDesktop || undefined,
                         claudeCode: CONFIG.paths.claudeCode || undefined,
-                        cursor: CONFIG.paths.cursor || undefined
+                        cursor: CONFIG.paths.cursor || undefined,
+                        claudeIdeCursor: CONFIG.paths.claudeIdeCursor || undefined
                     },
                     maxBackups: CONFIG.maxBackups
                 })
@@ -741,6 +751,9 @@ async function saveDirectly(target) {
             showToast('Advanced server not running - downloading Claude Code CLI instead', 'warning');
         } else if (target === 'cursor') {
             downloadConfig(config, 'mcp.json');
+            showToast('Advanced server not running - downloading Cursor instead', 'warning');
+        } else if (target === 'claudeIdeCursor') {
+            downloadConfig(config, 'mcp.json');
             showToast('Advanced server not running - downloading Claude IDE Cursor instead', 'warning');
         } else if (target === 'both') {
             downloadConfig(config, 'claude_desktop_config.json');
@@ -754,8 +767,11 @@ async function saveDirectly(target) {
                 downloadConfig(config, 'claude.json');
             }, 500);
             setTimeout(() => {
-                downloadConfig(config, 'mcp.json');
+                downloadConfig(config, 'cursor_mcp.json');
             }, 1000);
+            setTimeout(() => {
+                downloadConfig(config, 'claude_ide_cursor_mcp.json');
+            }, 1500);
             showToast('Advanced server not running - downloading instead', 'warning');
         }
     }
@@ -829,6 +845,23 @@ async function applyToCursor() {
         }
         const config = generateCleanConfig();
         downloadConfig(config, 'mcp.json');
+        showToast('Downloading Cursor config...', 'success');
+    }
+}
+
+async function applyToClaudeIdeCursor() {
+    // Try direct save first
+    const hasAdvancedServer = await checkAdvancedServer();
+    if (hasAdvancedServer) {
+        await saveDirectly('claudeIdeCursor');
+    } else {
+        // Fallback to download
+        if (!mcpConfig.mcpServers || Object.keys(mcpConfig.mcpServers).length === 0) {
+            showToast('No servers loaded yet!', 'error');
+            return;
+        }
+        const config = generateCleanConfig();
+        downloadConfig(config, 'mcp.json');
         showToast('Downloading Claude IDE Cursor config...', 'success');
     }
 }
@@ -850,8 +883,11 @@ async function applyToAll() {
             downloadConfig(config, 'claude.json');
         }, 500);
         setTimeout(() => {
-            downloadConfig(config, 'mcp.json');
+            downloadConfig(config, 'cursor_mcp.json');
         }, 1000);
+        setTimeout(() => {
+            downloadConfig(config, 'claude_ide_cursor_mcp.json');
+        }, 1500);
         showToast('Downloading all configs...', 'success');
     }
 }
