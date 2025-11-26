@@ -6,10 +6,11 @@ const CONFIG = {
     gistId: localStorage.getItem('gistId') || '',
     githubToken: localStorage.getItem('githubToken') || '',
     fileName: 'mcp.txt',
-    // New path settings
+    // Path settings
     paths: {
         claudeDesktop: localStorage.getItem('claudeDesktopPath') || '',
-        claudeCode: localStorage.getItem('claudeCodePath') || ''
+        claudeCode: localStorage.getItem('claudeCodePath') || '',
+        cursor: localStorage.getItem('cursorPath') || ''
     },
     maxBackups: parseInt(localStorage.getItem('maxBackups')) || 10
 };
@@ -214,28 +215,33 @@ async function showSettingsModal() {
     const gistInput = document.getElementById('gistId');
     const desktopPathInput = document.getElementById('claudeDesktopPath');
     const codePathInput = document.getElementById('claudeCodePath');
+    const cursorPathInput = document.getElementById('cursorPath');
     const maxBackupsInput = document.getElementById('maxBackups');
-    
+
     // Load existing values
     tokenInput.value = CONFIG.githubToken;
     gistInput.value = CONFIG.gistId;
     desktopPathInput.value = CONFIG.paths.claudeDesktop;
     codePathInput.value = CONFIG.paths.claudeCode;
+    cursorPathInput.value = CONFIG.paths.cursor;
     maxBackupsInput.value = CONFIG.maxBackups || 10;
-    
+
     // Try to load current settings from server if available
     const hasAdvanced = await checkAdvancedServer();
     if (hasAdvanced) {
         try {
             const response = await fetch('http://localhost:8080/api/settings');
             const settings = await response.json();
-            
+
             // If server paths are different and local storage is empty, use server paths
             if (!CONFIG.paths.claudeDesktop && settings.paths?.claudeDesktop) {
                 desktopPathInput.value = settings.paths.claudeDesktop;
             }
             if (!CONFIG.paths.claudeCode && settings.paths?.claudeCode) {
                 codePathInput.value = settings.paths.claudeCode;
+            }
+            if (!CONFIG.paths.cursor && settings.paths?.cursor) {
+                cursorPathInput.value = settings.paths.cursor;
             }
             if (!localStorage.getItem('maxBackups') && settings.maxBackups) {
                 maxBackupsInput.value = settings.maxBackups;
@@ -244,7 +250,7 @@ async function showSettingsModal() {
             console.log('Could not load server settings:', error.message);
         }
     }
-    
+
     modal.classList.add('show');
 }
 
@@ -257,22 +263,25 @@ async function saveSettings() {
     const gistInput = document.getElementById('gistId');
     const desktopPathInput = document.getElementById('claudeDesktopPath');
     const codePathInput = document.getElementById('claudeCodePath');
+    const cursorPathInput = document.getElementById('cursorPath');
     const maxBackupsInput = document.getElementById('maxBackups');
-    
+
     // Save to localStorage
     localStorage.setItem('githubToken', tokenInput.value.trim());
     localStorage.setItem('gistId', gistInput.value.trim());
     localStorage.setItem('claudeDesktopPath', desktopPathInput.value.trim());
     localStorage.setItem('claudeCodePath', codePathInput.value.trim());
+    localStorage.setItem('cursorPath', cursorPathInput.value.trim());
     localStorage.setItem('maxBackups', maxBackupsInput.value || '10');
-    
+
     // Update CONFIG
     CONFIG.githubToken = tokenInput.value.trim();
     CONFIG.gistId = gistInput.value.trim();
     CONFIG.paths.claudeDesktop = desktopPathInput.value.trim();
     CONFIG.paths.claudeCode = codePathInput.value.trim();
+    CONFIG.paths.cursor = cursorPathInput.value.trim();
     CONFIG.maxBackups = parseInt(maxBackupsInput.value) || 10;
-    
+
     // Update server settings if available
     const hasAdvanced = await checkAdvancedServer();
     if (hasAdvanced) {
@@ -285,26 +294,27 @@ async function saveSettings() {
                 body: JSON.stringify({
                     paths: {
                         claudeDesktop: CONFIG.paths.claudeDesktop || undefined,
-                        claudeCode: CONFIG.paths.claudeCode || undefined
+                        claudeCode: CONFIG.paths.claudeCode || undefined,
+                        cursor: CONFIG.paths.cursor || undefined
                     },
                     maxBackups: CONFIG.maxBackups
                 })
             });
-            
+
             if (!response.ok) {
                 throw new Error('Failed to update server settings');
             }
-            
+
             console.log('✅ Server settings updated');
         } catch (error) {
             console.error('Could not update server settings:', error);
             showToast('Settings saved locally (server update failed)', 'warning');
         }
     }
-    
+
     closeSettingsModal();
     showToast('Settings saved', 'success');
-    
+
     // Auto-load with new settings
     if (CONFIG.githubToken && CONFIG.gistId) {
         loadFromGist();
@@ -722,20 +732,30 @@ async function saveDirectly(target) {
     } catch (error) {
         console.error('Direct save failed, falling back to download:', error);
         // Fallback to download
+        const config = generateCleanConfig();
         if (target === 'desktop') {
-            const config = generateCleanConfig();
             downloadConfig(config, 'claude_desktop_config.json');
             showToast('Advanced server not running - downloading instead', 'warning');
         } else if (target === 'code') {
-            const config = generateCleanConfig();
             downloadConfig(config, 'claude.json');
             showToast('Advanced server not running - downloading instead', 'warning');
+        } else if (target === 'cursor') {
+            downloadConfig(config, 'mcp.json');
+            showToast('Advanced server not running - downloading instead', 'warning');
         } else if (target === 'both') {
-            const config = generateCleanConfig();
             downloadConfig(config, 'claude_desktop_config.json');
             setTimeout(() => {
                 downloadConfig(config, 'claude.json');
             }, 500);
+            showToast('Advanced server not running - downloading instead', 'warning');
+        } else if (target === 'all') {
+            downloadConfig(config, 'claude_desktop_config.json');
+            setTimeout(() => {
+                downloadConfig(config, 'claude.json');
+            }, 500);
+            setTimeout(() => {
+                downloadConfig(config, 'mcp.json');
+            }, 1000);
             showToast('Advanced server not running - downloading instead', 'warning');
         }
     }
@@ -793,6 +813,46 @@ async function applyToBoth() {
             downloadConfig(config, 'claude.json');
         }, 500);
         showToast('Downloading both configs...', 'success');
+    }
+}
+
+async function applyToCursor() {
+    // Try direct save first
+    const hasAdvancedServer = await checkAdvancedServer();
+    if (hasAdvancedServer) {
+        await saveDirectly('cursor');
+    } else {
+        // Fallback to download
+        if (!mcpConfig.mcpServers || Object.keys(mcpConfig.mcpServers).length === 0) {
+            showToast('No servers loaded yet!', 'error');
+            return;
+        }
+        const config = generateCleanConfig();
+        downloadConfig(config, 'mcp.json');
+        showToast('Downloading Cursor config...', 'success');
+    }
+}
+
+async function applyToAll() {
+    // Try direct save first
+    const hasAdvancedServer = await checkAdvancedServer();
+    if (hasAdvancedServer) {
+        await saveDirectly('all');
+    } else {
+        // Fallback to download
+        if (!mcpConfig.mcpServers || Object.keys(mcpConfig.mcpServers).length === 0) {
+            showToast('No servers loaded yet!', 'error');
+            return;
+        }
+        const config = generateCleanConfig();
+        downloadConfig(config, 'claude_desktop_config.json');
+        setTimeout(() => {
+            downloadConfig(config, 'claude.json');
+        }, 500);
+        setTimeout(() => {
+            downloadConfig(config, 'mcp.json');
+        }, 1000);
+        showToast('Downloading all configs...', 'success');
     }
 }
 

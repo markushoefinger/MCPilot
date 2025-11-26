@@ -8,7 +8,7 @@ const os = require('os');
 function getClaudeDesktopPath() {
     const platform = os.platform();
     const home = os.homedir();
-    
+
     switch(platform) {
         case 'win32':
             return path.join(home, 'AppData', 'Roaming', 'Claude', 'claude_desktop_config.json');
@@ -22,6 +22,23 @@ function getClaudeDesktopPath() {
     }
 }
 
+// Helper function to get platform-specific Cursor MCP path
+function getCursorPath() {
+    const platform = os.platform();
+    const home = os.homedir();
+
+    switch(platform) {
+        case 'win32':
+            return path.join(home, '.cursor', 'mcp.json');
+        case 'darwin': // macOS
+            return path.join(home, '.cursor', 'mcp.json');
+        case 'linux':
+            return path.join(home, '.cursor', 'mcp.json');
+        default:
+            return path.join(home, '.cursor', 'mcp.json');
+    }
+}
+
 // Configuration - can be overridden via environment variables
 const CONFIG = {
     port: process.env.MCP_PORT || 8080,
@@ -29,7 +46,8 @@ const CONFIG = {
     // Default paths - can be overridden via /api/settings endpoint
     paths: {
         claudeCode: process.env.MCP_CLAUDE_CODE_PATH || path.join(os.homedir(), '.claude.json'),
-        claudeDesktop: process.env.MCP_CLAUDE_DESKTOP_PATH || getClaudeDesktopPath()
+        claudeDesktop: process.env.MCP_CLAUDE_DESKTOP_PATH || getClaudeDesktopPath(),
+        cursor: process.env.MCP_CURSOR_PATH || getCursorPath()
     }
 };
 
@@ -38,6 +56,7 @@ const PORT = CONFIG.port;
 const SERVER_DIR = __dirname;
 let CLAUDE_CODE_PATH = CONFIG.paths.claudeCode;
 let CLAUDE_DESKTOP_PATH = CONFIG.paths.claudeDesktop;
+let CURSOR_PATH = CONFIG.paths.cursor;
 
 // CORS headers
 const corsHeaders = {
@@ -131,16 +150,16 @@ const server = http.createServer((req, res) => {
                 };
                 
                 // Save based on target
-                if (target === 'code' || target === 'both') {
+                if (target === 'code' || target === 'both' || target === 'all') {
                     try {
                         // Create backup
                         const backupResult = createBackup(CLAUDE_CODE_PATH, 'Claude Code');
-                        
+
                         // Save new config
                         fs.writeFileSync(CLAUDE_CODE_PATH, configJson, 'utf8');
-                        results.push({ 
-                            target: 'Claude Code', 
-                            status: 'success', 
+                        results.push({
+                            target: 'Claude Code',
+                            status: 'success',
                             path: CLAUDE_CODE_PATH,
                             backup: backupResult
                         });
@@ -149,22 +168,22 @@ const server = http.createServer((req, res) => {
                     }
                 }
                 
-                if (target === 'desktop' || target === 'both') {
+                if (target === 'desktop' || target === 'both' || target === 'all') {
                     try {
                         // Ensure directory exists
                         const dir = path.dirname(CLAUDE_DESKTOP_PATH);
                         if (!fs.existsSync(dir)) {
                             fs.mkdirSync(dir, { recursive: true });
                         }
-                        
+
                         // Create backup
                         const backupResult = createBackup(CLAUDE_DESKTOP_PATH, 'Claude Desktop');
-                        
+
                         // Save new config
                         fs.writeFileSync(CLAUDE_DESKTOP_PATH, configJson, 'utf8');
-                        results.push({ 
-                            target: 'Claude Desktop', 
-                            status: 'success', 
+                        results.push({
+                            target: 'Claude Desktop',
+                            status: 'success',
                             path: CLAUDE_DESKTOP_PATH,
                             backup: backupResult
                         });
@@ -172,7 +191,31 @@ const server = http.createServer((req, res) => {
                         results.push({ target: 'Claude Desktop', status: 'error', error: err.message });
                     }
                 }
-                
+
+                if (target === 'cursor' || target === 'all') {
+                    try {
+                        // Ensure directory exists
+                        const dir = path.dirname(CURSOR_PATH);
+                        if (!fs.existsSync(dir)) {
+                            fs.mkdirSync(dir, { recursive: true });
+                        }
+
+                        // Create backup
+                        const backupResult = createBackup(CURSOR_PATH, 'Cursor');
+
+                        // Save new config
+                        fs.writeFileSync(CURSOR_PATH, configJson, 'utf8');
+                        results.push({
+                            target: 'Cursor',
+                            status: 'success',
+                            path: CURSOR_PATH,
+                            backup: backupResult
+                        });
+                    } catch (err) {
+                        results.push({ target: 'Cursor', status: 'error', error: err.message });
+                    }
+                }
+
                 res.writeHead(200, corsHeaders);
                 res.end(JSON.stringify({ success: true, results }));
                 
@@ -231,6 +274,11 @@ const server = http.createServer((req, res) => {
                         CONFIG.paths.claudeDesktop = newSettings.paths.claudeDesktop;
                         // Update the backward compatibility variable
                         CLAUDE_DESKTOP_PATH = CONFIG.paths.claudeDesktop;
+                    }
+                    if (newSettings.paths.cursor) {
+                        CONFIG.paths.cursor = newSettings.paths.cursor;
+                        // Update the backward compatibility variable
+                        CURSOR_PATH = CONFIG.paths.cursor;
                     }
                 }
                 
@@ -347,6 +395,7 @@ server.listen(PORT, () => {
     console.log('📍 Config paths:');
     console.log(`   Claude Code:    ${CLAUDE_CODE_PATH}`);
     console.log(`   Claude Desktop: ${CLAUDE_DESKTOP_PATH}`);
+    console.log(`   Cursor:         ${CURSOR_PATH}`);
     console.log('');
     console.log('Press Ctrl+C to stop\n');
     

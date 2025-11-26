@@ -94,15 +94,18 @@
                     <!-- Separator -->
                     <div class="h-8 w-px bg-purple-300 opacity-50"></div>
                     
-                    <!-- Claude Save Operations -->
+                    <!-- Save Operations -->
                     <button onclick="applyToClaudeDesktop()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-semibold">
                         <i class="fas fa-save mr-2"></i>Claude Desktop
                     </button>
                     <button onclick="applyToClaudeCode()" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 font-semibold">
                         <i class="fas fa-save mr-2"></i>Claude Code
                     </button>
-                    <button onclick="applyToBoth()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 font-semibold">
-                        <i class="fas fa-save mr-2"></i>Both
+                    <button onclick="applyToCursor()" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 font-semibold">
+                        <i class="fas fa-save mr-2"></i>Cursor
+                    </button>
+                    <button onclick="applyToAll()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 font-semibold">
+                        <i class="fas fa-save mr-2"></i>All
                     </button>
                     
                     <!-- Separator -->
@@ -204,6 +207,11 @@
                             <label class="block text-sm font-medium mb-1">Claude Code Config Path</label>
                             <input type="text" id="claudeCodePath" placeholder="Leave empty for auto-detected path" class="w-full px-3 py-2 border rounded-lg text-sm">
                             <p class="text-xs text-gray-500 mt-1">Leave empty for default path (auto-detects based on OS)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Cursor MCP Config Path</label>
+                            <input type="text" id="cursorPath" placeholder="Leave empty for auto-detected path" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <p class="text-xs text-gray-500 mt-1">Leave empty for default path (~/.cursor/mcp.json)</p>
                         </div>
                     </div>
                 </div>
