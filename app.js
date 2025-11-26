@@ -738,10 +738,10 @@ async function saveDirectly(target) {
             showToast('Advanced server not running - downloading instead', 'warning');
         } else if (target === 'code') {
             downloadConfig(config, 'claude.json');
-            showToast('Advanced server not running - downloading instead', 'warning');
+            showToast('Advanced server not running - downloading Claude Code CLI instead', 'warning');
         } else if (target === 'cursor') {
             downloadConfig(config, 'mcp.json');
-            showToast('Advanced server not running - downloading instead', 'warning');
+            showToast('Advanced server not running - downloading Claude IDE Cursor instead', 'warning');
         } else if (target === 'both') {
             downloadConfig(config, 'claude_desktop_config.json');
             setTimeout(() => {
@@ -792,7 +792,7 @@ async function applyToClaudeCode() {
         }
         const config = generateCleanConfig();
         downloadConfig(config, 'claude.json');
-        showToast('Downloading Claude Code config...', 'success');
+        showToast('Downloading Claude Code CLI config...', 'success');
     }
 }
 
@@ -829,7 +829,7 @@ async function applyToCursor() {
         }
         const config = generateCleanConfig();
         downloadConfig(config, 'mcp.json');
-        showToast('Downloading Cursor config...', 'success');
+        showToast('Downloading Claude IDE Cursor config...', 'success');
     }
 }
 

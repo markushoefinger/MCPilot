@@ -153,18 +153,18 @@ const server = http.createServer((req, res) => {
                 if (target === 'code' || target === 'both' || target === 'all') {
                     try {
                         // Create backup
-                        const backupResult = createBackup(CLAUDE_CODE_PATH, 'Claude Code');
+                        const backupResult = createBackup(CLAUDE_CODE_PATH, 'Claude Code CLI');
 
                         // Save new config
                         fs.writeFileSync(CLAUDE_CODE_PATH, configJson, 'utf8');
                         results.push({
-                            target: 'Claude Code',
+                            target: 'Claude Code CLI',
                             status: 'success',
                             path: CLAUDE_CODE_PATH,
                             backup: backupResult
                         });
                     } catch (err) {
-                        results.push({ target: 'Claude Code', status: 'error', error: err.message });
+                        results.push({ target: 'Claude Code CLI', status: 'error', error: err.message });
                     }
                 }
                 
@@ -201,18 +201,18 @@ const server = http.createServer((req, res) => {
                         }
 
                         // Create backup
-                        const backupResult = createBackup(CURSOR_PATH, 'Cursor');
+                        const backupResult = createBackup(CURSOR_PATH, 'Claude IDE Cursor');
 
                         // Save new config
                         fs.writeFileSync(CURSOR_PATH, configJson, 'utf8');
                         results.push({
-                            target: 'Cursor',
+                            target: 'Claude IDE Cursor',
                             status: 'success',
                             path: CURSOR_PATH,
                             backup: backupResult
                         });
                     } catch (err) {
-                        results.push({ target: 'Cursor', status: 'error', error: err.message });
+                        results.push({ target: 'Claude IDE Cursor', status: 'error', error: err.message });
                     }
                 }
 
@@ -393,9 +393,9 @@ server.listen(PORT, () => {
     console.log('   • CORS enabled');
     console.log('');
     console.log('📍 Config paths:');
-    console.log(`   Claude Code:    ${CLAUDE_CODE_PATH}`);
-    console.log(`   Claude Desktop: ${CLAUDE_DESKTOP_PATH}`);
-    console.log(`   Cursor:         ${CURSOR_PATH}`);
+    console.log(`   Claude Code CLI:    ${CLAUDE_CODE_PATH}`);
+    console.log(`   Claude Desktop:     ${CLAUDE_DESKTOP_PATH}`);
+    console.log(`   Claude IDE Cursor:  ${CURSOR_PATH}`);
     console.log('');
     console.log('Press Ctrl+C to stop\n');
     
