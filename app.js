@@ -24,25 +24,54 @@ let mcpConfig = {
 };
 let editingServer = null;
 
+// Load default credentials from server
+async function loadDefaultCredentials() {
+    try {
+        const response = await fetch('http://localhost:8080/api/defaults');
+        if (response.ok) {
+            const defaults = await response.json();
+            return defaults;
+        }
+    } catch (e) {
+        console.log('Could not load default credentials from server');
+    }
+    return { githubToken: '', gistId: '' };
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('MCPilot - GitHub API Version');
     console.log('=====================================');
-    
+
     // First update UI to ensure DOM is ready
     updateUI();
-    
+
     // Check for advanced server
     const hasAdvancedServer = await checkAdvancedServer();
     if (hasAdvancedServer) {
         console.log('✅ Advanced server detected - direct save enabled');
         showToast('🚀 Advanced server running - direct save enabled!', 'success');
         updateServerStatus(true);
+
+        // Load default credentials from .env.local if not already configured
+        if (!CONFIG.githubToken || !CONFIG.gistId) {
+            const defaults = await loadDefaultCredentials();
+            if (defaults.githubToken && !CONFIG.githubToken) {
+                CONFIG.githubToken = defaults.githubToken;
+                localStorage.setItem('githubToken', defaults.githubToken);
+                console.log('✅ Loaded default GitHub token from .env.local');
+            }
+            if (defaults.gistId && !CONFIG.gistId) {
+                CONFIG.gistId = defaults.gistId;
+                localStorage.setItem('gistId', defaults.gistId);
+                console.log('✅ Loaded default Gist ID from .env.local');
+            }
+        }
     } else {
         console.log('ℹ️ Advanced server not running - using download fallback');
         updateServerStatus(false);
     }
-    
+
     // Check for stored credentials
     if (!CONFIG.githubToken) {
         console.log('No GitHub token configured - opening settings');

@@ -4,6 +4,32 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+// Load .env.local file if it exists
+function loadEnvLocal() {
+    const envPath = path.join(__dirname, '.env.local');
+    const env = {};
+
+    if (fs.existsSync(envPath)) {
+        const content = fs.readFileSync(envPath, 'utf8');
+        content.split('\n').forEach(line => {
+            const trimmed = line.trim();
+            if (trimmed && !trimmed.startsWith('#')) {
+                const match = trimmed.match(/^([^=]+)=(.*)$/);
+                if (match) {
+                    const key = match[1].trim();
+                    const value = match[2].trim();
+                    env[key] = value;
+                }
+            }
+        });
+        console.log('✅ Loaded .env.local file');
+    }
+
+    return env;
+}
+
+const envLocal = loadEnvLocal();
+
 // Helper function to get platform-specific Claude Desktop path
 function getClaudeDesktopPath() {
     const platform = os.platform();
@@ -358,13 +384,23 @@ const server = http.createServer((req, res) => {
     // API: Check server status
     if (req.url === '/api/status' && req.method === 'GET') {
         res.writeHead(200, corsHeaders);
-        res.end(JSON.stringify({ 
+        res.end(JSON.stringify({
             status: 'running',
             version: '1.0.0',
             capabilities: ['direct-save'],
             paths: CONFIG.paths,
             port: CONFIG.port,
             maxBackups: CONFIG.maxBackups
+        }));
+        return;
+    }
+
+    // API: Get default credentials from .env.local
+    if (req.url === '/api/defaults' && req.method === 'GET') {
+        res.writeHead(200, corsHeaders);
+        res.end(JSON.stringify({
+            githubToken: envLocal['Github API'] || '',
+            gistId: envLocal['Gist'] || ''
         }));
         return;
     }
